@@ -1,0 +1,12 @@
+
+/*datagrid 設定表格header*/
+.dx-datagrid .dx-datagrid-headers .dx-header-row  > td {
+    padding: 7px;
+    background-color:#243F61;
+    color: white;
+}
+/*datagrid 設定表格body*/
+.dx-datagrid .dx-datagrid-rowsview .dx-column-lines > td {
+    padding: 2px;
+    vertical-align: middle;
+}
