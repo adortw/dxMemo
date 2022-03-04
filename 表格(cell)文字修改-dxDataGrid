@@ -1,0 +1,32 @@
+表格(cell)文字修改-dxDataGrid
+
+onCellPrepared: function (e) {
+…
+    //data style
+    if (e.rowType == "data") {
+    …
+        //數值格式
+        if(e.columnIndex >1){
+            let formatValue = "";
+            if ((e.data["FORMAT_NAME"]).includes("discount")) { 
+                formatValue = "" + getNumberByUnit(e.value, 1, 4); 
+            } else {
+                formatValue = getNumberByUnit(e.value, 1, 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            if (e.value < 0)
+                formatValue = "(" + formatValue.substring(1) + ")";
+            e.cellElement[0].innerHTML = formatValue;  //innerHTML : 指定顯示在前端本文
+        }
+…
+
+
+        //格式化數字By單位、小數 ex:(1234500000, 1000000, 0) => 1235
+        function getNumberByUnit(value, unit, point) {
+            let absValue = Math.abs(value); //Math.abs取絕對值(去掉負號)，避免-0.015，四捨五入後變-0.01
+            if (point == null)
+                return value / unit;
+            else {
+                let multip = value < 0 ? -1 : 1;
+                return +(Math.round((absValue / unit) + "e+" + point) + "e-" + point) * multip;
+            }
+        }
