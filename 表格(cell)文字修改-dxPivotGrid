@@ -1,0 +1,22 @@
+表格(cell)文字修改-dxPivotGrid
+
+…
+onCellPrepared: function (e) {
+    //data
+    if (e.area == "data" && e.columnIndex != 13) {
+        ...
+        if (e.cell.rowPath[0] == "01期初" || e.cell.rowPath[0] == "04期末"){
+            e.cellElement.css(“background-color”, “#AFEEEE”); //設定css背景色
+            if (e.columnIndex == 12) { //期初, 期末不用total
+                let span = e.cellElement.find("span");
+                span.replaceWith(“”); //用空字串取代原來文字
+            }
+        }
+…
+
+
+//cell裡文字改超連結
+let totalUrl = window.location.protocol + "//" + window.location.host + "/MGT/CashFlow/CashFlow_TypeCurve_DX.aspx";
+let totalUrlParam = "?FMonth=" + $("#<%=tbxYear.ClientID%>").val() + "-02”;
+let link = "<a href='" + totalUrl + totalUrlParam + "'>" + e.cell.text + "</a>";
+span.replaceWith(link);
