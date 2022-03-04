@@ -1,0 +1,15 @@
+!無法還原序列化
+
+Web.config:
+
+</configuration>
+….
+  <!-- 避免回傳JSON要求太長，無法還原序列化，增加最大長度 (認值是102400)-->
+  <system.web.extensions>
+    <scripting>
+      <webServices>
+        <jsonSerialization maxJsonLength="2147483544" />
+      </webServices>
+    </scripting>
+  </system.web.extensions>
+</configuration>
