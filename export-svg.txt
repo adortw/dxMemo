@@ -1,0 +1,143 @@
+
+            //export
+            $.fn.exportExcel = function () {
+                $("#<%=btnExport.ClientID%>").click(function () {
+                    var pg1 = $("#dxGridYear").dxDataGrid("instance");
+                    var pg2 = $("#dxGridCustCode").dxDataGrid("instance");
+                    var pg3 = $("#dxGridCustGroup").dxDataGrid("instance");
+                    //var chartb64 = $("#dxChart").dxChart("instance");     //export chart
+                    var workbook = new ExcelJS.Workbook();
+                    var worksheet = workbook.addWorksheet($("#<%=tbxCustGroup.ClientID%>").val() + "-" + $("#<%=tbxCustCode.ClientID%>").val());
+                    worksheet.addRow(['表格1']);
+                    DevExpress.excelExporter.exportDataGrid({
+                        worksheet: worksheet,
+                        component: pg1,
+                        topLeftCell: { row: 2, column: 1 },
+                        customizeCell: function (options) {
+                            custExlCell(options.gridCell, options.excelCell, "dxGridYear");
+                        },
+                    }).then(function (dataGridRange) {
+                        worksheet.addRow(['表格2']);
+                        return DevExpress.excelExporter.exportDataGrid({
+                            worksheet: worksheet,
+                            component: pg2,
+                            topLeftCell: { row: dataGridRange.to.row + 2, column: 1 }, //dataGridRange:上一個dxDataGrid資料範圍; to.row : 最後一筆資料行
+                            customizeCell: function (options) {
+                                custExlCell(options.gridCell, options.excelCell, "dxGridCustCode");
+                            },
+                        }).then(function (dataGridRange) {
+                            worksheet.addRow(['表格3']);
+                            return DevExpress.excelExporter.exportDataGrid({
+                                worksheet: worksheet,
+                                component: pg3,
+                                topLeftCell: { row: dataGridRange.to.row + 2, column: 1 },
+                                customizeCell: function (options) {
+                                    custExlCell(options.gridCell, options.excelCell, "dxGridCustGroup");
+                                },
+                            }).then(function () {
+                                worksheet.addRow(['']);
+                                worksheet.addRow(['單位: NTD']);
+                                getBase64(chartb64, function (dataURL) {
+                                    //console.log(dataURL);
+                                    worksheet.addRow([""]);
+                                    const imageId = workbook.addImage({
+                                        base64: dataURL,
+                                        extension: 'png',
+                                    });
+                                    worksheet.addImage(imageId, {
+                                        tl: { col: 1, row: dataGridRange.to.row + 6 },
+                                        ext: { width: chartb64._canvas.width, height: chartb64._canvas.height }
+                                    });
+                                    workbook.xlsx.writeBuffer().then(function (buffer) {
+                                        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), $("#<%=tbxCustGroup.ClientID%>").val() + "_" + $("#<%=tbxCustCode.ClientID%>").val()+ ".xlsx");
+                                    });
+                                });
+                            });
+                        });
+
+                    });
+
+                });
+            };
+
+
+
+//   用 chat SVG  base64 的 轉成 IMG base64 (預設PNG) 
+function getBase64(chart, callback) { 
+
+    var img = document.createElement('img');
+    var chartb64 = window.btoa(unescape(encodeURIComponent(chart.svg())));
+    img.setAttribute('src', "data:image/svg+xml;base64," + chartb64)
+    //console.log("data:image/svg+xml;base64," + chartb64);
+    img.onload = function () {
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+        var dataURL = canvas.toDataURL(); //轉換圖片為dataURL ==>IMG base64 (預設PNG) 
+
+        //localStorage.setItem("chartImg", data);
+        return callback ? callback(dataURL) : null; //回撥函式
+    };
+};
+
+
+
+            function custExlCell(gridCell, excelCell, dgName) {
+                let custExcelCell = {};
+                let valueObj = "";
+                let cellBGC = "";
+                let fontColor = "000000";
+                excelCell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+                //column header
+                if (gridCell.rowType == "header") {
+                    Object.assign(custExcelCell, getExcelCellColorFormat({ fill: "BEC1C0", font: "000000" }));
+                    excelCell.value = excelCell.value.replaceAll("<br/>", ""); //移除斷行
+                }
+                //data
+                if (gridCell.rowType == "data") {
+                    if (gridCell.column.dataField == "CUST_GROUP") //第一欄資料列(欄)填滿灰色
+                    {
+                        excelCell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFDBDBDB' },
+                            bgColor: { argb: 'FFDBDBDB' }
+                        };  //a:FF-不透明、00-透明;rgb:顏色
+                    }
+                    let align = "right";
+                    if (gridCell.column.dataField == "CUST_GROUP" || gridCell.column.dataField == "CUST_CODE" || gridCell.column.dataField == "CUST_NAME"
+                            || gridCell.column.dataField == "YEAR" || gridCell.column.dataField == "CUST_GRADE") {
+                        align = "center";
+                    }
+                    if (dgName == "dxGridCustCode") {
+                        if (gridCell.column.index > 2 && gridCell.column.index <= 7) {
+                            excelCell.value = getNumberByUnit(gridCell.value, 1000000, 0); //百萬為單位
+                            excelCell.numFmt = '#,##0'; //3位1撇
+                        }
+                        if (gridCell.column.index > 7 && gridCell.column.index <= 9) {
+                            excelCell.value = gridCell.value;
+                            excelCell.numFmt = '0%';
+                        }
+                    }
+                }
+                
+                Object.assign(excelCell, custExcelCell);
+
+                var borderStyle = { style: "thin", color: { argb: "1E1E1E" } };
+                excelCell.border = {
+                    bottom: borderStyle,
+                    left: borderStyle,
+                    right: borderStyle,
+                    top: borderStyle
+                };
+            };
+
+
+
+//格式化數字By單位、小數 ex:(1234500000, 1000000, 0) => 1235
+function getNumberByUnit(value, unit, point) {
+    //return (value / unit).toFixed(point);
+    return +(Math.round((value / unit) + "e+" + point) + "e-" + point);
+}
